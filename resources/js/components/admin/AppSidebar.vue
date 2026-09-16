@@ -51,7 +51,7 @@
     >
       <nav class="mb-6">
         <div class="flex flex-col gap-4">
-          <div v-for="(menuGroup, groupIndex) in menuGroups" :key="groupIndex">
+          <div v-for="(menuGroup, groupIndex) in visibleMenuGroups" :key="groupIndex">
             <h2
               :class="[
                 'mb-4 text-xs uppercase flex leading-5 text-gray-400',
@@ -213,10 +213,11 @@
 
 <script setup lang="ts">
 import Logo from '@/assets/logo.svg';
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 
 import { useSidebar } from '@/composables/useSidebar'
+import { usePermissions } from '@/composables/usePermissions'
 import {
   CalenderIcon,
   ChevronDownIcon,
@@ -242,6 +243,7 @@ interface SubItem {
   path: string
   pro?: boolean
   new?: boolean
+  permission?: string
 }
 
 interface MenuItem {
@@ -251,12 +253,15 @@ interface MenuItem {
   subItems?: SubItem[]
   new?: boolean
   pro?: boolean
+  permission?: string
 }
 
 interface MenuGroup {
   title: string
   items: MenuItem[]
 }
+
+const { can } = usePermissions()
 
 const menuGroups: MenuGroup[] = [
   {
@@ -266,10 +271,10 @@ const menuGroups: MenuGroup[] = [
         icon: SettingsIcon,
         name: 'Administration',
         subItems: [
-          { name: 'Users', path: '/users' },
-          { name: 'Departments', path: '/departments' },
-          { name: 'Roles', path: '/roles' },
-          { name: 'Permissions', path: '/permissions' },
+          { name: 'Users', path: '/users', permission: 'users.view' },
+          { name: 'Departments', path: '/departments', permission: 'departments.view' },
+          { name: 'Roles', path: '/roles', permission: 'roles.view' },
+          { name: 'Permissions', path: '/permissions', permission: 'permissions.view' },
         ],
       },
     //   {
@@ -284,11 +289,33 @@ const menuGroups: MenuGroup[] = [
   },
 ]
 
+// Drops any item/subItem the current user lacks permission for, and drops
+// a parent item entirely once all of its subItems have been filtered out
+// (no point showing an "Administration" dropdown with nothing inside it).
+const visibleMenuGroups = computed<MenuGroup[]>(() => {
+  return menuGroups
+    .map((group) => {
+      const items = group.items
+        .map((item) => {
+          if (item.subItems) {
+            const subItems = item.subItems.filter((subItem) => can(subItem.permission))
+            if (subItems.length === 0) return null
+            return { ...item, subItems }
+          }
+          return can(item.permission) ? item : null
+        })
+        .filter((item): item is MenuItem => item !== null)
+
+      return { ...group, items }
+    })
+    .filter((group) => group.items.length > 0)
+})
+
 const currentPath = () => page.url.split('?')[0]
 const isActive = (path?: string) => (path ? currentPath() === path : false)
 
 const setActiveMenuFromRoute = () => {
-  menuGroups.forEach((group, groupIndex) => {
+  visibleMenuGroups.value.forEach((group, groupIndex) => {
     group.items.forEach((item, itemIndex) => {
       if (item.subItems?.some((subItem) => isActive(subItem.path))) {
         openSubmenu.value = `${groupIndex}-${itemIndex}`

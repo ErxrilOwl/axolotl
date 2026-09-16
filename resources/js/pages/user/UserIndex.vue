@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { Pencil, Trash2, Plus, Info, RefreshCw, Search, Key } from 'lucide-vue-next'
 
 import ThemeProvider from '@/layouts/ThemeProvider.vue'
@@ -133,6 +133,25 @@ if (flashMessage.value) {
     downloadCredentials(props.email, props.default_password)
   }
 }
+
+// The capture above only covers a fresh page load (e.g. arriving here
+// after the edit form redirects). Delete and reset-password stay on this
+// same mounted instance and update props.status in place without a
+// remount, so this catches those without reintroducing the earlier
+// immediate-watch flicker (this only fires on a genuine value change).
+watch(
+  () => props.status,
+  (status, previous) => {
+    if (status && status !== previous) {
+      flashMessage.value = status
+      setTimeout(() => (flashMessage.value = ''), 4000)
+
+      if (props.email && props.default_password) {
+        downloadCredentials(props.email, props.default_password)
+      }
+    }
+  },
+)
 </script>
 
 <template>

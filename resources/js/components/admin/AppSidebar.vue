@@ -226,6 +226,7 @@ import {
   PageIcon,
   PieChartIcon,
   PlugInIcon,
+  SettingsIcon,
   TableIcon,
   UserCircleIcon,
   BoxCubeIcon
@@ -262,9 +263,14 @@ const menuGroups: MenuGroup[] = [
     title: 'Menu',
     items: [
       {
-        icon: UserCircleIcon,
-        name: 'Users',
-        path: '/users',
+        icon: SettingsIcon,
+        name: 'Administration',
+        subItems: [
+          { name: 'Users', path: '/users' },
+          { name: 'Departments', path: '/departments' },
+          { name: 'Roles', path: '/roles' },
+          { name: 'Permissions', path: '/permissions' },
+        ],
       },
     //   {
     //     name: 'Pages',

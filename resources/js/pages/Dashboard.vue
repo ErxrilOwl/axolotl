@@ -6,7 +6,7 @@
     <div class="col-span-12">
       <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Welcome back, {{ user?.name }} 👋
+          Welcome back, {{ user?.first_name }} 👋
         </h3>
         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
           You're signed in as {{ user?.email }}. This is a starter dashboard page — swap this section out for real widgets, charts, and tables.
@@ -52,7 +52,8 @@ defineOptions({
 })
 
 interface AuthUser {
-  name: string
+  first_name: string
+  last_name: string
   email: string
 }
 

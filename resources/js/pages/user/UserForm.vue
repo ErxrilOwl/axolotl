@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm, router } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 import ThemeProvider from '@/layouts/ThemeProvider.vue'
 import SidebarProvider from '@/layouts/SidebarProvider.vue'
@@ -52,9 +52,6 @@ const form = useForm({
   password: '',
 })
 
-// Captured once here rather than watched reactively — see UserIndex.vue
-// for why: session flash data is one-shot per page load, and watching a
-// reactive prop for it risks the banner flickering instead of holding.
 const flashMessage = ref(props.status ?? '')
 
 const downloadCredentials = (email: string, password: string) => {
@@ -65,17 +62,32 @@ const downloadCredentials = (email: string, password: string) => {
   const a = document.createElement('a')
   a.href = url
   a.download = `def-pass-${email}.txt`
+  document.body.appendChild(a)
   a.click()
+  a.remove()
   URL.revokeObjectURL(url)
 }
 
-if (flashMessage.value) {
-  setTimeout(() => (flashMessage.value = ''), 4000)
+let flashTimeout: ReturnType<typeof setTimeout> | undefined
 
-  if (props.email && props.default_password) {
-    downloadCredentials(props.email, props.default_password)
-  }
-}
+// Inertia reuses this component instance when the redirect lands back on the
+// same page (e.g. store() -> users.create, resetPassword() -> back()), so we
+// need to react to prop changes rather than only reading them once on mount.
+watch(
+  () => props.status,
+  (status) => {
+    if (!status) return
+
+    flashMessage.value = status
+    clearTimeout(flashTimeout)
+    flashTimeout = setTimeout(() => (flashMessage.value = ''), 4000)
+
+    if (props.email && props.default_password) {
+      downloadCredentials(props.email, props.default_password)
+    }
+  },
+  { immediate: true },
+)
 
 const onSubmit = () => {
   if (props.isEdit && props.user) {

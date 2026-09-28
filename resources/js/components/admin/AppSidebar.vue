@@ -311,8 +311,18 @@ const visibleMenuGroups = computed<MenuGroup[]>(() => {
     .filter((group) => group.items.length > 0)
 })
 
-const currentPath = () => page.url.split('?')[0]
-const isActive = (path?: string) => (path ? currentPath() === path : false)
+const currentPath = () => page.url.split(/[?#]/)[0].replace(/\/+$/, '') || '/'
+
+// Active when the current URL is the item's path or nested beneath it
+// (e.g. /users is active on /users, /users/create, /users/5/edit),
+// matching on a segment boundary so /users does not match /users-archive.
+const isActive = (path?: string) => {
+  if (!path) return false
+  const target = path.replace(/\/+$/, '') || '/'
+  const current = currentPath()
+  if (target === '/') return current === '/'
+  return current === target || current.startsWith(target + '/')
+}
 
 const setActiveMenuFromRoute = () => {
   visibleMenuGroups.value.forEach((group, groupIndex) => {
